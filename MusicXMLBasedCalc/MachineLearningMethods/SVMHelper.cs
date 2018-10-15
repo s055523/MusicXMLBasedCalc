@@ -1,21 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using libsvm;
-using System.Data;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using Accord.MachineLearning.VectorMachines.Learning;
-using Accord.MachineLearning.VectorMachines;
 using Accord.Statistics.Kernels;
+using System.Configuration;
 
 namespace MusicXMLBasedCalc
 {
     public static class SVMHelper
     {
-        static double C = 0.8;
-        static double gamma = 0.0025;
+        static double C
+        {
+            get
+            {
+                return double.Parse(ConfigurationManager.AppSettings["svm_c"]);
+            }
+        }
+        static double gamma
+        {
+            get
+            {
+                return double.Parse(ConfigurationManager.AppSettings["svm_gamma"]);
+            }
+        }
 
         public static void LibSVM(List<string> inputData, List<string> testData)
         {

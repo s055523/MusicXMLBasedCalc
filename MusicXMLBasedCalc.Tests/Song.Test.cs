@@ -5,7 +5,7 @@ using System.Linq;
 namespace MusicXMLBasedCalc.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class SongTest
     {
         [TestMethod]
         public void test_easy_music_fragment_parser()
@@ -15,6 +15,9 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+
+            song.Parse();
+            song.IntervalAnalysis();
             song.SongAnalysis();
 
             //Assert
@@ -36,6 +39,8 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+            song.Parse();
+            song.IntervalAnalysis();
             song.SongAnalysis();
 
             //Assert
@@ -55,12 +60,13 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+            song.Parse(); song.IntervalAnalysis();
             song.SongAnalysis();
 
             //Assert
             Assert.AreEqual(9, song.songNotes.Count);
             Assert.AreEqual(5, song.songNotes[0].information.Split(',').Length);
-            Assert.AreEqual("G4|0.125,A#3|3,D#4|3,G4|3,D#2|1", song.songNotes[0].information);
+            Assert.AreEqual("G4|1,A#3|24,D#4|24,G4|24,D#2|8", song.songNotes[0].information);
         }
 
         [TestMethod]
@@ -71,6 +77,7 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+            song.Parse(); song.IntervalAnalysis();
             song.SongAnalysis();
 
             //Assert
@@ -85,12 +92,13 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+            song.Parse(); song.IntervalAnalysis();
             song.SongAnalysis();
 
             var notes = song.songNotes.SelectMany(n => n.notes);
-            var notes16th = notes.Where(n => n.duration == 0.25).Count();
-            var notes8th = notes.Where(n => n.duration == 0.5).Count();
-            var notes4th = notes.Where(n => n.duration == 1).Count();
+            var notes16th = notes.Where(n => n.duration == 1).Count();
+            var notes8th = notes.Where(n => n.duration == 2).Count();
+            var notes4th = notes.Where(n => n.duration == 4).Count();
 
             //Assert
             Assert.IsTrue(notes16th > 400);
@@ -104,7 +112,26 @@ namespace MusicXMLBasedCalc.Tests
 
             //Act
             var song = new Song(inputFile, "");
+            song.Parse(); song.IntervalAnalysis();
             song.SongAnalysis();
+        }
+
+        [TestMethod]
+        public void test_all()
+        {
+            var inputFile = @"D:\新西兰学习生活\大学上课\测试数据\【古典】库劳C大调小奏鸣曲第三乐章急板.musicxml";
+
+            var song = new Song(inputFile, "");
+            song.Parse();
+            song.IntervalAnalysis();
+
+            var allnotes = song.songNotes.SelectMany(n => n.notes);
+            var notesWithinFirstFiveMeasures = allnotes.Where(n => n.measureNumber < 6);
+
+            Assert.AreEqual(4, notesWithinFirstFiveMeasures.Where(n => n.pitch == "G4").Count());
+
+            song.SongAnalysis(1, 1);
+
         }
     }
 }

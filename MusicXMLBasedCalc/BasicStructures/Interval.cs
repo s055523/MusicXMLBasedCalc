@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MusicXMLBasedCalc
 {
@@ -10,10 +6,17 @@ namespace MusicXMLBasedCalc
     {
         public Note baseNote;
         public Note upperNote;
+        public int measureNumber;
+
+        //音程含有多少个半音，例如小二度的length=1
         public int length;
-        public IntervalCatagories intervalCategory;
+
         public bool isBiggerThanOctave;
+
+        public IntervalCatagories intervalCategory;
         public ConsonanceCatagories consonanceCategory;
+
+        //音程两个音的时值的乘积
         public double weight;
 
         public Interval(Note a, Note b, double w = 1)
@@ -21,12 +24,12 @@ namespace MusicXMLBasedCalc
             baseNote = a;
             upperNote = b;
             weight = w * a.duration * b.duration;
-            (length, isBiggerThanOctave, intervalCategory, consonanceCategory) = GetIntervalDetails(a, b);
+            (length, intervalCategory, consonanceCategory) = GetIntervalDetails(a, b);
+            isBiggerThanOctave = Math.Abs(b.id - a.id) > 12;
         }
 
-        public static (int, bool, IntervalCatagories, ConsonanceCatagories) GetIntervalDetails(Note a, Note b)
+        public static (int, IntervalCatagories, ConsonanceCatagories) GetIntervalDetails(Note a, Note b)
         {
-            bool isBiggerThanOctave = false;
             IntervalCatagories intervalCategory = 0;
             ConsonanceCatagories consonanceCategory = ConsonanceCatagories.perfectConsonance;
 
@@ -37,8 +40,8 @@ namespace MusicXMLBasedCalc
             while (distance > 12)
             {
                 distance -= 12;
-                isBiggerThanOctave = true;
             }
+
             //https://en.wikipedia.org/wiki/Consonance_and_dissonance
             switch (distance)
             {
@@ -101,7 +104,7 @@ namespace MusicXMLBasedCalc
                     consonanceCategory = ConsonanceCatagories.perfectDisonnace;
                     break;
             }
-            return (length, isBiggerThanOctave, intervalCategory, consonanceCategory);
+            return (length, intervalCategory, consonanceCategory);
         }
 
         public void Play()
@@ -111,12 +114,14 @@ namespace MusicXMLBasedCalc
         }
     }
 
+    //音程的种类
     public enum IntervalCatagories
     {
         unison, minorSecond, majorSecond, minorThird, majorThird, perfectFourth, augmentFourth,
         perfectFifth, minorSixth, majorSixth, minorSeventh, majorSeventh, octave
     }
 
+    //音程和谐的种类
     public enum ConsonanceCatagories
     {
         perfectConsonance, medianConsonance, imperfectConsonance, imperfectDissonance, medianDissonance, perfectDisonnace

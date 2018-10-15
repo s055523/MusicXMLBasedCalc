@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MusicXMLBasedCalc
 {
-    public class Key
+    public class Scale
     {
         //升降号的数目
         public int fifth { get; set; }
@@ -21,49 +21,37 @@ namespace MusicXMLBasedCalc
         public List<string> scaleNotes { get; set; }
 
         public int startMeasureNumber { get; set; }
-
         public int endMeasureNumber { get; set; }
 
-        public Key(string m, int f)
+        public Scale(string m, int f)
         {
             scaleNotes = new List<string>();
             mode = m;
             fifth = f;
 
             //通过五度关系定出主音位置
+            //纯五度有7个半音
             var numOfSemitone = 7;
 
             //通过音程关系定出所有音
-            if (mode == "major" || mode == string.Empty)
-            {
-                baseNoteName = "C4";
-                baseNoteName = NoteHelper.GetNote(baseNoteName, numOfSemitone * fifth);
-                scaleNotes.Add(baseNoteName.Substring(0, baseNoteName.Length - 1));
+            baseNoteName = "C4";
+            baseNoteName = NoteHelper.GetNote(baseNoteName, numOfSemitone * fifth);
+            scaleNotes.Add(baseNoteName.Substring(0, baseNoteName.Length - 1));
 
-                if (baseNoteName.Last() == '7') baseNoteName = baseNoteName.Replace('7', '4');
-                if (baseNoteName.Last() == '8') baseNoteName = baseNoteName.Replace('8', '4');
-                AddMajorKeys(baseNoteName);
+            //如果超出了C0-B8范围
+            if (baseNoteName.Last() == '8') baseNoteName = baseNoteName.Replace('8', '4');
+            AddKeys(baseNoteName);
 
-                //现在scaleNotes应该有7个音
-                //为了handle关系小调和大调的转换（此时谱子无需显式写出），需要把小调也加入进去
-                //小调大部分音和大调相同，除了最后一个音大调没有，是大调主音上面减五度
-                var extraNoteFromMinor = NoteHelper.GetNote(baseNoteName, 8);
-                scaleNotes.Add(extraNoteFromMinor.Substring(0, extraNoteFromMinor.Length - 1));
-            }
-            else
-            {
-                baseNoteName = "A4";
-                baseNoteName = NoteHelper.GetNote(baseNoteName, numOfSemitone * fifth);
-                scaleNotes.Add(baseNoteName.Substring(0, baseNoteName.Length - 1));
-                AddMinorKeys(baseNoteName);
-
-                //大调大部分音和小调相同，除了小调主音上面的大七度
-                var extraNoteFromMajor = NoteHelper.GetNote(baseNoteName, 10);
-                scaleNotes.Add(extraNoteFromMajor.Substring(0, extraNoteFromMajor.Length - 1));
-            }
+            //现在scaleNotes应该有7个音
+            //为了handle关系小调和大调的转换（此时谱子无需显式写出），需要把小调也加入进去
+            //小调大部分音和大调相同，除了最后一个音大调没有，是大调主音上面减五度
+            var extraNoteFromMinor = NoteHelper.GetNote(baseNoteName, 8);
+            scaleNotes.Add(extraNoteFromMinor.Substring(0, extraNoteFromMinor.Length - 1));
         }
 
-        private void AddMajorKeys(string baseNoteName)
+        //找到调所有的音,这里认为是大调
+        //这里不区分大小调了,因为同主音大小调交替在乐谱中不表示,无法侦测出来
+        private void AddKeys(string baseNoteName)
         {
             //大调：全全半全全全半
             var nextNoteName = baseNoteName;
@@ -81,24 +69,6 @@ namespace MusicXMLBasedCalc
             scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
         }
 
-        private void AddMinorKeys(string baseNoteName)
-        {
-            //和声小调
-            var nextNoteName = baseNoteName;
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 3);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-        }
-
         public bool InKey(Note note)
         {
             //得到唱名，忽略音高
@@ -106,76 +76,81 @@ namespace MusicXMLBasedCalc
             return scaleNotes.Contains(name);
         }
 
-        public string KeyFix(Note note)
+        //调性修正:给定一个调和一个音,得出该音被修正之后的音高字符串表示
+        //例如给定E大调和G,则它应该被修正为G#
+        public Note KeyFix(Note note)
         {
-            if (fifth == 0) return note.pitch;
+            var newNote = note;
+            if (fifth == 0) return note;
             int notePitchHeight = int.Parse(note.pitch.Last().ToString());
 
             if (note.pitch.Contains("C") && !note.pitch.Contains("C#"))
             {
                 if (fifth >= 2)
                 {
-                    return "C#" + notePitchHeight;
+                    newNote.pitch = "C#" + notePitchHeight;
+                    newNote.id++;
                 }
                 if(fifth <= -6)
                 {
                     notePitchHeight--;
-                    return "B" + notePitchHeight;
+                    newNote.pitch = "B" + notePitchHeight;
+                    newNote.id--;
                 }
             }
             if (note.pitch.Contains("D") && !note.pitch.Contains("D#"))
             {
                 if (fifth >= 4)
                 {
-                    return "D#" + notePitchHeight;
+                    newNote.pitch = "D#" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -4)
                 {
-                    return "C#" + notePitchHeight;
+                    newNote.pitch = "C#" + notePitchHeight; newNote.id--;
                 }
             }
             if (note.pitch.Contains("E"))
             {
                 if (fifth >= 6)
                 {
-                    return "F" + notePitchHeight;
+                    newNote.pitch = "F" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -2)
                 {
-                    return "D#" + notePitchHeight;
+                    newNote.pitch = "D#" + notePitchHeight; newNote.id--;
                 }
             }
             if (note.pitch.Contains("F") && !note.pitch.Contains("F#"))
             {
                 if (fifth >= 1)
                 {
-                    return "F#" + notePitchHeight;
+                    newNote.pitch = "F#" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -7)
                 {
-                    return "E" + notePitchHeight;
+                    newNote.pitch = "E" + notePitchHeight; newNote.id--;
                 }
             }
             if (note.pitch.Contains("G") && !note.pitch.Contains("G#"))
             {
                 if (fifth >= 3)
                 {
-                    return "G#" + notePitchHeight;
+                    newNote.pitch = "G#" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -5)
                 {
-                    return "F#" + notePitchHeight;
+                    newNote.pitch = "F#" + notePitchHeight; newNote.id--;
                 }
             }
             if (note.pitch.Contains("A") && !note.pitch.Contains("A#"))
             {
                 if (fifth >= 5)
                 {
-                    return "A#" + notePitchHeight;
+                    newNote.pitch = "A#" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -3)
                 {
-                    return "G#" + notePitchHeight;
+                    newNote.pitch = "G#" + notePitchHeight; newNote.id--;
                 }
             }
             if (note.pitch.Contains("B"))
@@ -183,14 +158,14 @@ namespace MusicXMLBasedCalc
                 if (fifth >= 7)
                 {
                     notePitchHeight++;
-                    return "C" + notePitchHeight;
+                    newNote.pitch = "C" + notePitchHeight; newNote.id++;
                 }
                 if (fifth <= -1)
                 {
-                    return "A#" + notePitchHeight;
+                    newNote.pitch = "A#" + notePitchHeight; newNote.id--;
                 }
             }
-            return note.pitch;
+            return newNote;
         }
     }
 }

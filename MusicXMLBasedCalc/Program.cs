@@ -7,20 +7,20 @@ namespace MusicXMLBasedCalc
 {
     class Program
     {
-        public const int FRAGMENT_LENGTH = 6;
+        public const int FRAGMENT_LENGTH = 4;
         public const bool CUT = true;
 
         static void Main(string[] args)
         {
             //Debug
-            var directory = @"D:\新西兰学习生活\大学上课\Debug";
-            var inputResult = @"D:\新西兰学习生活\大学上课\Debug\Result.csv";
-            var inputData = CalculateAndGenerate(directory, inputResult, CUT);
+            //var directory = @"D:\新西兰学习生活\大学上课\Debug";
+            //var inputResult = @"D:\新西兰学习生活\大学上课\Debug\Result.csv";
+            //var inputData = CalculateAndGenerate(directory, inputResult, CUT);
 
             //Input
             var inputDirectory = @"D:\新西兰学习生活\大学上课\乐谱数据";
-            inputResult = @"D:\新西兰学习生活\大学上课\乐谱数据\Result.csv";
-            inputData = CalculateAndGenerate(inputDirectory, inputResult, CUT);
+            var inputResult = @"D:\新西兰学习生活\大学上课\乐谱数据\Result.csv";
+            var inputData = CalculateAndGenerate(inputDirectory, inputResult, CUT);
 
             //Test
             var testDirectory = @"D:\新西兰学习生活\大学上课\测试数据";
@@ -70,37 +70,46 @@ namespace MusicXMLBasedCalc
 
             if (File.Exists(fileName)) File.Delete(fileName);
             var ret = new List<string>();
+            var songList = new List<Song>();
+
+            //整体的分析歌曲
+            foreach (var file in songFiles)
+            {
+                var song = new Song(file.FullName, string.Empty);
+                songList.Add(song);
+                song.Parse();
+                song.IntervalAnalysis();
+                song.SongAnalysis();
+
+                if (!song.skip)
+                {
+                    ret.Add(song.PrintResultToCsv());
+                }
+            }
 
             if (cut)
             {
-                foreach (var file in songFiles)
+                ret.Clear();
+                foreach (var song in songList)
                 {
-                    var numOfMeasure = MusicXMLParser.GetNumOfMeasure(file.FullName);
-                    
+                    var numOfMeasure = Song.GetNumOfMeasure(song.fileName);                  
                     for (int i = 0; i < numOfMeasure; i += FRAGMENT_LENGTH)
                     {
                         var start = i;
                         var end = Math.Min(start + FRAGMENT_LENGTH, numOfMeasure);
-                        if (end - start < FRAGMENT_LENGTH) break;
-                        var song = new Song(file.FullName, "小节" + start + "-" + end, start, end);
-                        song.SongAnalysis();
-                        if (!song.skip)
+                        if (end - start < FRAGMENT_LENGTH)
                         {
-                            ret.Add(song.PrintResultToCsv());
+                            break;
                         }
-                        i++;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var file in songFiles)
-                {
-                    var song = new Song(file.FullName, string.Empty);
-                    song.SongAnalysis();
-                    if (!song.skip)
-                    {
-                        ret.Add(song.PrintResultToCsv());
+                        else
+                        {
+                            song.SongAnalysis(start, end);
+
+                            if (!song.skip)
+                            {
+                                ret.Add(song.PrintResultToCsv());
+                            }
+                        }
                     }
                 }
             }
@@ -109,7 +118,7 @@ namespace MusicXMLBasedCalc
             using (StreamWriter file = new StreamWriter(fileName, true, Encoding.UTF8))
             {
                 //Caption
-                string caption = ",1，8度,4，5度,3度,6度,大2，小七,小二，大7，增四,音程平均值,音程方差,调外音,节奏方差,转调次数";
+                string caption = ",1&8度,大2&小7,小2&大7&增四,音程方差,调外音,节奏方差,波音个数，回音个数，颤音个数";
                 file.WriteLine(caption);
 
                 foreach (var str in ret)
@@ -146,7 +155,7 @@ namespace MusicXMLBasedCalc
 
             foreach(var songFile in songFiles)
             {
-                var measureCount = MusicXMLParser.GetNumOfMeasure(songFile.FullName);
+                var measureCount = Song.GetNumOfMeasure(songFile.FullName);
                 ret += measureCount / FRAGMENT_LENGTH;
             }
             return ret;

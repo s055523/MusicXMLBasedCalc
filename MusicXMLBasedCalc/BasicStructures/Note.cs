@@ -7,16 +7,22 @@ namespace MusicXMLBasedCalc
         public readonly double semitone = Math.Pow(2, 0.0833);
         public const double A4 = 440;
 
-        //音高
+        //音高的字符串表示
         public string pitch { get; set; }
+
         //时值
         public double duration { get; set; }
+
         //音在谱子上的物理位置
         public double position { get; set; }
+
         //音本身的位置（例如C0就是1，D0就是2，等等）
         public int id { get; set; }
+
         //音在哪个小节
         public int measureNumber { get; set; }
+
+        //该音符是否被临时记号修饰,如果是,则pitch可能需要进行调整
         public string accidental { get; set; }
 
         public int frequency;
@@ -24,16 +30,19 @@ namespace MusicXMLBasedCalc
         //是否是连线的开始和结束
         public SlurStatus slurStatus;
 
+        //这个音属于哪个声部
+        public int voice { get; set; }
+
         public bool isMordent { get; set; }
         public bool isTrill { get; set; }
         public bool isTurn { get; set; }
 
-        public Note(string p, double d, double pos, int id, int m, string acc, string slur = "")
+        public Note(string p, double d, double pos, int m, string acc = "", string slur = "")
         {
             pitch = p;
             duration = d;
             position = pos;
-            this.id = id;
+            id = NoteHelper.GetNoteIdByPitch(pitch);
             measureNumber = m;
             accidental = acc;
             frequency = GetApproxFrequency();
@@ -41,7 +50,7 @@ namespace MusicXMLBasedCalc
             switch (slur)
             {
                 case "start":
-                    this.slurStatus = SlurStatus.start;
+                    slurStatus = SlurStatus.start;
                     break;
                 case "stop":
                     slurStatus = SlurStatus.stop;
