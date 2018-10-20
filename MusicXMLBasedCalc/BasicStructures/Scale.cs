@@ -1,8 +1,6 @@
-﻿using System;
+﻿using MusicXMLBasedCalc.BasicStructures;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MusicXMLBasedCalc
 {
@@ -21,7 +19,12 @@ namespace MusicXMLBasedCalc
         public List<string> scaleNotes { get; set; }
 
         public int startMeasureNumber { get; set; }
+
         public int endMeasureNumber { get; set; }
+
+        public ChordThree main { get; set; }
+        public ChordThree subDominant { get; set; }
+        public ChordThree dominant { get; set; }
 
         public Scale(string m, int f)
         {
@@ -47,6 +50,24 @@ namespace MusicXMLBasedCalc
             //小调大部分音和大调相同，除了最后一个音大调没有，是大调主音上面减五度
             var extraNoteFromMinor = NoteHelper.GetNote(baseNoteName, 8);
             scaleNotes.Add(extraNoteFromMinor.Substring(0, extraNoteFromMinor.Length - 1));
+
+            var baseNote = new Note(baseNoteName);
+            var fourthNote = new Note(NoteHelper.GetNote(baseNoteName, 5));
+            var fifthNote = new Note(NoteHelper.GetNote(baseNoteName, 7));
+
+            //建立和弦
+            if (mode == "major")
+            {
+                main = ChordHelper.BuildThree(baseNote, ChordThreeCategory.major);
+                subDominant = ChordHelper.BuildThree(fourthNote, ChordThreeCategory.major);
+                dominant = ChordHelper.BuildThree(fifthNote, ChordThreeCategory.major);
+            }
+            else
+            {
+                main = ChordHelper.BuildThree(baseNote, ChordThreeCategory.minor);
+                subDominant = ChordHelper.BuildThree(fourthNote, ChordThreeCategory.minor);
+                dominant = ChordHelper.BuildThree(fifthNote, ChordThreeCategory.minor);
+            }
         }
 
         //找到调所有的音,这里认为是大调

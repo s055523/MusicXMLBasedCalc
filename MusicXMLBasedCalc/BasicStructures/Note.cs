@@ -37,6 +37,12 @@ namespace MusicXMLBasedCalc
         public bool isTrill { get; set; }
         public bool isTurn { get; set; }
 
+        public Note(string p)
+        {
+            id = NoteHelper.GetNoteIdByPitch(p);
+            pitch = p;
+        }
+
         public Note(string p, double d, double pos, int m, string acc = "", string slur = "")
         {
             pitch = p;

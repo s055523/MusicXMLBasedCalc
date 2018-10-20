@@ -18,6 +18,8 @@ namespace MusicXMLBasedCalc
 
         public string fileName;
 
+        public double division;
+
         //这首曲子所有的音符
         public List<Result> songNotes;
         public List<Note> outOfKeyNotes;
@@ -179,7 +181,7 @@ namespace MusicXMLBasedCalc
             }
 
             //所有的duration都要除这个数
-            double division = double.Parse(firstMeasure.Descendants("divisions").First().Value);
+            division = double.Parse(firstMeasure.Descendants("divisions").First().Value);
 
             //double currDurationInMeasure = Measure.GetDurationInMeasure(firstMeasure.Descendants("divisions").First());
 

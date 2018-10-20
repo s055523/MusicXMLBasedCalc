@@ -91,6 +91,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BasicStructures\ChordHelper.cs" />
+    <Compile Include="BasicStructures\ChordThree.cs" />
     <Compile Include="BasicStructures\Interval.cs" />
     <Compile Include="BasicStructures\Measure.cs" />
     <Compile Include="BasicStructures\Scale.cs" />

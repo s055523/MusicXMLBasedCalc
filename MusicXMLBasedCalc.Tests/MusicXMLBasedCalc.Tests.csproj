@@ -49,12 +49,14 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Chord.Test.cs" />
     <Compile Include="Scale.Test.cs" />
     <Compile Include="Interval.Test.cs" />
     <Compile Include="Song.Test.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

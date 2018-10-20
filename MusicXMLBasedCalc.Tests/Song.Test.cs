@@ -66,7 +66,7 @@ namespace MusicXMLBasedCalc.Tests
             //Assert
             Assert.AreEqual(9, song.songNotes.Count);
             Assert.AreEqual(5, song.songNotes[0].information.Split(',').Length);
-            Assert.AreEqual("G4|1,A#3|24,D#4|24,G4|24,D#2|8", song.songNotes[0].information);
+            Assert.AreEqual("G4|0.125,A#3|3,D#4|3,G4|3,D#2|1", song.songNotes[0].information);
         }
 
         [TestMethod]
