@@ -7,7 +7,7 @@ namespace MusicXMLBasedCalc
 {
     class Program
     {
-        public const int FRAGMENT_LENGTH = 4;
+        public const int FRAGMENT_LENGTH = 8;
         public const bool CUT = true;
 
         static void Main(string[] args)
@@ -49,8 +49,7 @@ namespace MusicXMLBasedCalc
                 fw.WriteLine("测试集总共：" + HowManySongs(testDirectory, "") + "首歌曲，" + HowManyMeasures(testDirectory, "") + "个片段");
 
                 //使用SVM进行分类
-                //SVMHelper.AccordSVM(inputData, testData, fw);
-                //
+                SVMHelper.AccordSVM(inputData, testData, fw);
                 SVMHelper.AccordSVMMultiClasses(inputData, testData, fw);
 
                 Console.WriteLine("============================================");
@@ -93,7 +92,7 @@ namespace MusicXMLBasedCalc
                 foreach (var song in songList)
                 {
                     var numOfMeasure = Song.GetNumOfMeasure(song.fileName);                  
-                    for (int i = 0; i < numOfMeasure; i += FRAGMENT_LENGTH)
+                    for (int i = 1; i < numOfMeasure; i += FRAGMENT_LENGTH)
                     {
                         var start = i;
                         var end = Math.Min(start + FRAGMENT_LENGTH, numOfMeasure);
@@ -103,6 +102,7 @@ namespace MusicXMLBasedCalc
                         }
                         else
                         {
+                            song.SetSuffix($"小节{start}-{end}");
                             song.SongAnalysis(start, end);
 
                             if (!song.skip)
@@ -118,7 +118,7 @@ namespace MusicXMLBasedCalc
             using (StreamWriter file = new StreamWriter(fileName, true, Encoding.UTF8))
             {
                 //Caption
-                string caption = ",1&8度,大2&小7,小2&大7&增四,音程方差,调外音,节奏方差,波音个数，回音个数，颤音个数";
+                string caption = ",1&8度,大2&小7,小2&大7&增四,音程方差,调外音,节奏方差,波音个数,回音个数,颤音个数,非简单和弦拍数比例,T比例,D比例,S比例,音高极值距离,音高方差";
                 file.WriteLine(caption);
 
                 foreach (var str in ret)

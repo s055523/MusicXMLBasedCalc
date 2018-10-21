@@ -19,7 +19,7 @@ namespace MusicXMLBasedCalc.Tests
             Assert.AreEqual("G1", chordNoteList[2]);
 
             var inputFile = @"D:\新西兰学习生活\大学上课\乐谱数据\古典\【古典】莫扎特C大调奏鸣曲K.545第一乐章.musicxml";
-            var song = new Song(inputFile, "", 0, 10);
+            var song = new Song(inputFile, "");
             song.Parse();
 
             //第一小节第1拍
@@ -51,49 +51,16 @@ namespace MusicXMLBasedCalc.Tests
             Assert.AreNotEqual(1, degreeOfCon);
 
             //遍历
-            var dC = ChordHelper.BuildThree(new Note("G1"), ChordThreeCategory.major);
-            var sC = ChordHelper.BuildThree(new Note("F1"), ChordThreeCategory.major);
-            var ret = new List<string>();
-            for (int i = 1; i < 10; i++)
-            {
-                for(int j = 0; j < song.division; j++)
-                {                   
-                    songNotes = song.songNotes.Where(s => s.position >= j && s.position < j+1).SelectMany(s => s.notes);
-                    notes = songNotes.Where(s => s.measureNumber == i);
+            var ret = ChordHelper.ChordAnalysis(1, song.numOfMeasures, song.songNotes, song.scaleList, song.division, song.numOfMeasures);
+            double non1 = (double)ret.Where(r => r.Contains("none")).Count() / (double)ret.Count;
 
-                    if (!notes.Any()) continue;
+            inputFile = @"D:\新西兰学习生活\大学上课\乐谱数据\现代\【现代】普罗科菲耶夫罗密欧与朱丽叶阳台场景.musicxml";
+            var song2 = new Song(inputFile, "");
+            song2.Parse();
+            var ret2 = ChordHelper.ChordAnalysis(1, song2.numOfMeasures, song2.songNotes, song2.scaleList, song2.division, song2.numOfMeasures);
+            double non2 = (double)ret2.Where(r => r.Contains("none")).Count() / (double)ret2.Count;
 
-                    var result = "小节" + i + ", 第" + j + "拍:";
-
-                    //T
-                    var degreeOfConT = ChordHelper.DegreeOfConsonance(notes.ToList(), c);
-                    
-                    //D
-                    var degreeOfConD = ChordHelper.DegreeOfConsonance(notes.ToList(), dC);
-
-                    //S
-                    var degreeOfConS = ChordHelper.DegreeOfConsonance(notes.ToList(), sC);
-                    
-                    if(degreeOfConT < 0.8 && degreeOfConD < 0.8 && degreeOfConS < 0.8)
-                    {
-                        result+=("none");
-                    }
-
-                    else if (degreeOfConT > degreeOfConD && degreeOfConT > degreeOfConS)
-                    {
-                        result += ("T"); 
-                    }
-                    else if (degreeOfConD > degreeOfConT && degreeOfConD > degreeOfConS)
-                    {
-                        result += ("D"); 
-                    }
-                    else if (degreeOfConS > degreeOfConT && degreeOfConS > degreeOfConD)
-                    {
-                        result += ("S"); 
-                    }
-                    ret.Add(result);
-                }
-            }
+            Assert.AreEqual(true, non1 < non2);
         }
     }
 }

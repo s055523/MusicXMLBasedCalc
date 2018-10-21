@@ -2,7 +2,7 @@
 
 namespace MusicXMLBasedCalc.BasicStructures
 {
-    public class ChordThree
+    public class Chord
     {
         public string name { get; set; }
         public List<Note> notes { get; set; }

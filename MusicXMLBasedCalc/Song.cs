@@ -14,9 +14,11 @@ namespace MusicXMLBasedCalc
     public class Song
     {
         //曲名
-        public string Name { get; set; }
+        public string Name;
 
         public string fileName;
+
+        public string suffix;
 
         public double division;
 
@@ -55,20 +57,38 @@ namespace MusicXMLBasedCalc
         //if it is small, this song contains both consonance and dissonance intervals
         public double ConsonanceIntervalVariance { get; set; }
 
+        //调外音数量
         public double PercentageOutOfKey { get; set; }
 
-        public double durationVariance { get; set; }
+        //节奏混乱程度
+        public double durationVariance;
         
         public int NumOfMordent { get; set; }
         public int NumOfTurn { get; set; }
         public int NumOfTrill { get; set; }
 
-        //public int keyNum { get; set; }
+        //无法配上主要和弦的节拍数占整个曲子的比例
+        public double NoneChordPercentage { get; set; }
+        public double TPercentage { get; set; }
+        public double DPercentage { get; set; }
+        public double SPercentage { get; set; }
 
-        public Song(string f, string suffix, int start = -1, int end = -1)
+        //最高音和最低音的距离
+        public double NoteRange { get; set; }
+
+        //音高的方差
+        public double NotePitchVariance { get; set; }
+
+        public Song(string f, string s, int start = -1, int end = -1)
         {
-            Name = f.Split('\\').Last() + suffix;
+            Name = f.Split('\\').Last();
+            suffix = s;
             fileName = f;
+        }
+
+        public void SetSuffix(string s)
+        {
+            suffix = s;
         }
 
         public static int GetNumOfMeasure(string fileName)
@@ -165,6 +185,8 @@ namespace MusicXMLBasedCalc
                                           select target;
 
             songNotes = new List<Result>();
+
+            numOfMeasures = Song.GetNumOfMeasure(fileName);
 
             //节拍号在第一个小节
             var firstMeasure = parts.First().Descendants("measure").First();
@@ -271,6 +293,28 @@ namespace MusicXMLBasedCalc
             ConsonanceIntervalVariance = consonanceArray.Variance();
 
             DurationAnalysis(start, end);
+
+            var ret = ChordHelper.ChordAnalysis(start, end, songNotes, scaleList, division, numOfMeasures);
+            if (ret.Count != 0)
+            {
+                NoneChordPercentage = (double)ret.Where(r => r.Contains("none")).Count() / (double)ret.Count;
+                TPercentage = (double)ret.Where(r => r.Contains("T")).Count() / (double)ret.Count;
+                SPercentage = (double)ret.Where(r => r.Contains("IV")).Count() / (double)ret.Count;
+                DPercentage = (double)ret.Where(r => r.Contains("V")).Count() / (double)ret.Count;
+            }
+
+            var allNotes = songNotes.SelectMany(s => s.notes).ToList();
+            if(start != -1 && end != -1)
+            {
+                allNotes = allNotes.Where(a => a.measureNumber <= end && a.measureNumber >= start).ToList();
+            }
+
+            var pitchIds = allNotes.Select(n => (double)n.id).ToList();
+
+            NotePitchVariance = pitchIds.Variance();
+
+            allNotes.Sort((a, b) => a.id.CompareTo(b.id));
+            NoteRange = (double) Math.Abs(allNotes.First().id - allNotes.Last().id) / 88;
         }
 
         public void IntervalAnalysis()
@@ -426,6 +470,8 @@ namespace MusicXMLBasedCalc
             var type = typeof(Song);
             var resultValues = new List<string>();
             var properties = type.GetProperties();
+
+            resultValues.Add(Name + suffix);
 
             foreach (PropertyInfo property in properties)
             {

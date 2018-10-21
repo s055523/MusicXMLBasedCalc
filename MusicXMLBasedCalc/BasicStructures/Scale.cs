@@ -22,9 +22,12 @@ namespace MusicXMLBasedCalc
 
         public int endMeasureNumber { get; set; }
 
-        public ChordThree main { get; set; }
-        public ChordThree subDominant { get; set; }
-        public ChordThree dominant { get; set; }
+        public Chord main { get; set; }
+        public Chord second { get; set; }
+        public Chord third { get; set; }
+        public Chord subDominant { get; set; }
+        public Chord dominant { get; set; }
+        public Chord sixth { get; set; }
 
         public Scale(string m, int f)
         {
@@ -39,55 +42,93 @@ namespace MusicXMLBasedCalc
             //通过音程关系定出所有音
             baseNoteName = "C4";
             baseNoteName = NoteHelper.GetNote(baseNoteName, numOfSemitone * fifth);
-            scaleNotes.Add(baseNoteName.Substring(0, baseNoteName.Length - 1));
 
             //如果超出了C0-B8范围
             if (baseNoteName.Last() == '8') baseNoteName = baseNoteName.Replace('8', '4');
-            AddKeys(baseNoteName);
+            
+            //小调的话把根音调成大调下方小三度
+            if (mode == "minor")
+            {
+                baseNoteName = new Note(NoteHelper.GetNote(baseNoteName, -3)).pitch;
+            }
 
-            //现在scaleNotes应该有7个音
-            //为了handle关系小调和大调的转换（此时谱子无需显式写出），需要把小调也加入进去
-            //小调大部分音和大调相同，除了最后一个音大调没有，是大调主音上面减五度
-            var extraNoteFromMinor = NoteHelper.GetNote(baseNoteName, 8);
-            scaleNotes.Add(extraNoteFromMinor.Substring(0, extraNoteFromMinor.Length - 1));
+            scaleNotes.Add(baseNoteName.Substring(0, baseNoteName.Length - 1));
 
-            var baseNote = new Note(baseNoteName);
-            var fourthNote = new Note(NoteHelper.GetNote(baseNoteName, 5));
-            var fifthNote = new Note(NoteHelper.GetNote(baseNoteName, 7));
+            AddKeys(baseNoteName, mode);
 
+            var baseNote = new Note(scaleNotes[0] + "4");
+            var secondNote = new Note(scaleNotes[1] + "4");
+            var thirdNote = new Note(scaleNotes[2] + "4");
+            var fourthNote = new Note(scaleNotes[3] + "4");
+            var fifthNote = new Note(scaleNotes[4] + "4");
+            var sixthNote = new Note(scaleNotes[5] + "4");
+            
             //建立和弦
             if (mode == "major")
             {
                 main = ChordHelper.BuildThree(baseNote, ChordThreeCategory.major);
+                second = ChordHelper.BuildThree(secondNote, ChordThreeCategory.minor);
+                third = ChordHelper.BuildThree(thirdNote, ChordThreeCategory.minor);
                 subDominant = ChordHelper.BuildThree(fourthNote, ChordThreeCategory.major);
                 dominant = ChordHelper.BuildThree(fifthNote, ChordThreeCategory.major);
+                sixth = ChordHelper.BuildThree(sixthNote, ChordThreeCategory.minor);
             }
             else
             {
                 main = ChordHelper.BuildThree(baseNote, ChordThreeCategory.minor);
+                second = ChordHelper.BuildThree(secondNote, ChordThreeCategory.diminished);
+                third = ChordHelper.BuildThree(thirdNote, ChordThreeCategory.major);
                 subDominant = ChordHelper.BuildThree(fourthNote, ChordThreeCategory.minor);
-                dominant = ChordHelper.BuildThree(fifthNote, ChordThreeCategory.minor);
+                dominant = ChordHelper.BuildThree(fifthNote, ChordThreeCategory.major);
+                sixth = ChordHelper.BuildThree(sixthNote, ChordThreeCategory.major);
             }
         }
 
-        //找到调所有的音,这里认为是大调
-        //这里不区分大小调了,因为同主音大小调交替在乐谱中不表示,无法侦测出来
-        private void AddKeys(string baseNoteName)
+        //找到调所有的音
+        private void AddKeys(string baseNoteName, string mode)
         {
-            //大调：全全半全全全半
-            var nextNoteName = baseNoteName;
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
-            nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
-            scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+            if (mode == "major" || mode == string.Empty)
+            {
+                //大调：全全半全全全半
+                var nextNoteName = baseNoteName;
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+
+                //关系小调
+                var extraNote = NoteHelper.GetNote(nextNoteName, -3);
+                scaleNotes.Add(extraNote.Substring(0, extraNote.Length - 1));
+            }
+            else if (mode == "minor")
+            {
+                //小调：全半全全半3半
+                var nextNoteName = baseNoteName;
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 2);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 1);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+                nextNoteName = NoteHelper.GetNote(nextNoteName, 3);
+                scaleNotes.Add(nextNoteName.Substring(0, nextNoteName.Length - 1));
+
+                //关系大调
+                var extraNote = NoteHelper.GetNote(nextNoteName, -1);
+                scaleNotes.Add(extraNote.Substring(0, extraNote.Length - 1));
+            }
         }
 
         public bool InKey(Note note)

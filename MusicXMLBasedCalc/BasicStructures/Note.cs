@@ -41,6 +41,7 @@ namespace MusicXMLBasedCalc
         {
             id = NoteHelper.GetNoteIdByPitch(p);
             pitch = p;
+            duration = 1;
         }
 
         public Note(string p, double d, double pos, int m, string acc = "", string slur = "")
