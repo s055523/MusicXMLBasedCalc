@@ -108,34 +108,18 @@ namespace MusicXMLBasedCalc
 
             //加起来就是音高
             var pitch = step + octave;
-            var pitchPos = NoteHelper.noteDic.Where(n => n.name == pitch).First().id;
+            var pitchPos = NoteHelper.noteDic.First(n => n.name == pitch).id;
 
-            //如果这个音符的XML中含有临时记号
-            var acc = string.Empty;
-            var accidentalNode = note.Descendants("accidental");
-            if (accidentalNode.Any())
+            //利用alter来判别是否需要调整，它包括了调和临时记号的情况
+            var alternote = note.Descendants("alter").FirstOrDefault();
+            if (alternote != null)
             {
-                acc = accidentalNode.First().Value;
-                switch (acc)
-                {
-                    case "sharp":
-                        pitchPos++;
-                        break;
-                    case "sharp-sharp":
-                        pitchPos += 2;
-                        break;
-                    case "flat":
-                        pitchPos--;
-                        break;
-                    case "flat-flat":
-                        pitchPos -= 2;
-                        break;
-                    default:
-                        break;
-                }
+                int value = int.Parse(alternote.Value);
+                pitchPos += value;
             }
 
-            var realNoteAfterAccidental = NoteHelper.GetNoteByPosition(pitchPos);
+            //调整之后的音的pitch
+            pitch = GetNoteByPosition(pitchPos);
 
             //探测同音高连线，要将这两个音归并为一个，否则会多出了一个纯一度
             var tieNode = note.Descendants("tie").FirstOrDefault();
@@ -143,7 +127,7 @@ namespace MusicXMLBasedCalc
             //普通的情况
             if (tieNode == null)
             {
-                Note n = new Note(realNoteAfterAccidental, duration, double.Parse(defaultx.Value), measureNumber, acc);
+                Note n = new Note(pitch, duration, double.Parse(defaultx.Value), measureNumber);
                 if (note.Descendants("mordent").Any() || note.Descendants("inverted-mordent").Any()
                     || note.Descendants("schleifer").Any())
                 {
@@ -157,21 +141,23 @@ namespace MusicXMLBasedCalc
                 {
                     n.isTrill = true;
                 }
-                if (note.Descendants("voice").Any())
+
+                var timeModification = note.Descendants("time-modification").FirstOrDefault();
+                if (timeModification != null)
                 {
-                    n.voice = int.Parse(note.Descendants("voice").First().Value);
+                    var actual = double.Parse(note.Descendants("actual-notes").First().Value);
+                    var normal = double.Parse(note.Descendants("normal-notes").First().Value);
+                    n.timeModification = actual / normal;
                 }
+
                 return n;
             }
             //这和上面的音是同一个音
             else
             {
                 var slurStatus = tieNode.Attribute("type").Value;
-                var n = new Note(realNoteAfterAccidental, duration, double.Parse(defaultx.Value), measureNumber, acc, slurStatus);
-                if (note.Descendants("voice").Any())
-                {
-                    n.voice = int.Parse(note.Descendants("voice").First().Value);
-                }
+                var n = new Note(pitch, duration, double.Parse(defaultx.Value), measureNumber, slurStatus);
+
                 return n;
             }
         }

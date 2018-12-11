@@ -87,7 +87,7 @@ namespace MusicXMLBasedCalc
         //找到调所有的音
         private void AddKeys(string baseNoteName, string mode)
         {
-            if (mode == "major" || mode == string.Empty)
+            if (mode == "major" || mode == string.Empty || mode == "none")
             {
                 //大调：全全半全全全半
                 var nextNoteName = baseNoteName;

@@ -117,11 +117,41 @@ namespace MusicXMLBasedCalc.Tests
         }
 
         [TestMethod]
+        public void test_note_difference()
+        {
+            //Arrange
+            var inputFile = @"D:\新西兰学习生活\大学上课\乐谱数据备份\巴洛克\【巴洛克】巴赫初级钢琴曲集07小步舞曲.musicxml";
+
+            //Act
+            var song = new Song(inputFile, "", 1, 10);
+            song.Parse(); song.IntervalAnalysis();
+            song.SongAnalysis(1, 10);
+
+            double expected = (double)33 / 96;
+            Assert.AreEqual(expected, song.NoteRange);
+        }
+
+        [TestMethod]
+        public void test_note_difference2()
+        {
+            //Arrange
+            var inputFile = @"D:\新西兰学习生活\大学上课\乐谱数据备份\印象与现代\【印象与现代】梅西安Quartet_for_the_end_of_Time_-_8th_movement.musicxml";
+
+            //Act
+            var song = new Song(inputFile, "", 11, 20);
+            song.Parse(); song.IntervalAnalysis();
+            song.SongAnalysis(11, 20);
+
+            double expected = (double)1 / 52;
+            Assert.AreEqual(expected, song.NoteAboveSeven);
+        }
+
+        [TestMethod]
         public void test_all()
         {
-            var inputFile = @"D:\新西兰学习生活\大学上课\测试数据\【古典】库劳C大调小奏鸣曲第三乐章急板.musicxml";
+            var inputFile = @"C:\Users\Frank\Desktop\大学上课\乐谱数据备份2\浪漫与印象\【浪漫与印象】肖邦降E大调夜曲.musicxml";
 
-            var song = new Song(inputFile, "");
+            var song = new Song(inputFile, "", 1, 10);
             song.Parse();
             song.IntervalAnalysis();
 
@@ -133,5 +163,7 @@ namespace MusicXMLBasedCalc.Tests
             song.SongAnalysis(1, 1);
 
         }
+
+
     }
 }

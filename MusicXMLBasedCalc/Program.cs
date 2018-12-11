@@ -1,14 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace MusicXMLBasedCalc
 {
     class Program
     {
-        public const int FRAGMENT_LENGTH = 8;
-        public const bool CUT = true;
+        public static int FRAGMENT_LENGTH;
+        public static bool CUT = true;
+        public static string inputDirectory
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["inputDirectory"];
+            }
+        }
+        public static string inputResult
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["inputResult"];
+            }
+        }
+        public static string testDirectory
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["testDirectory"];
+            }
+        }
+        public static string testResult
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings["testResult"];
+            }
+        }
 
         static void Main(string[] args)
         {
@@ -17,15 +47,21 @@ namespace MusicXMLBasedCalc
             //var inputResult = @"D:\新西兰学习生活\大学上课\Debug\Result.csv";
             //var inputData = CalculateAndGenerate(directory, inputResult, CUT);
 
+            if(args.Length > 0)
+            {
+                FRAGMENT_LENGTH = int.Parse(args[0]);
+                Console.WriteLine("片段长度:" + FRAGMENT_LENGTH);
+                if(FRAGMENT_LENGTH == -1)
+                {
+                    CUT = false;
+                }
+            }
+
             //Input
-            var inputDirectory = @"D:\新西兰学习生活\大学上课\乐谱数据";
-            var inputResult = @"D:\新西兰学习生活\大学上课\乐谱数据\Result.csv";
             var inputData = CalculateAndGenerate(inputDirectory, inputResult, CUT);
 
             //Test
-            var testDirectory = @"D:\新西兰学习生活\大学上课\测试数据";
-            inputResult = @"D:\新西兰学习生活\大学上课\测试数据\Result.csv";
-            var testData = CalculateAndGenerate(testDirectory, inputResult, CUT);
+            var testData = CalculateAndGenerate(testDirectory, testResult, CUT);
 
             var a = FRAGMENT_LENGTH + 1;
             var resultFile = DateTime.Now.ToString("yyyyMMddHHmmss") + (CUT == true ? "UseCut" : "");
@@ -35,19 +71,22 @@ namespace MusicXMLBasedCalc
             }
             resultFile += ".txt";
 
-            using (var fw = new StreamWriter(@"D:\新西兰学习生活\大学上课\乐谱数据\" + resultFile))
+            using (var fw = new StreamWriter(Path.Combine(inputDirectory, resultFile)))
             {
+                fw.WriteLine("目录：" + inputDirectory);
+                fw.WriteLine("和弦音程权重倍数：" + ConfigurationManager.AppSettings["chord_weight"]);
+
                 fw.WriteLine("输入集：");
                 
                 if (CUT) fw.WriteLine("片段长度:" + a);
                 fw.WriteLine("巴洛克：" + HowManySongs(inputDirectory, "巴洛克") + "首歌曲，" + HowManyMeasures(inputDirectory, "巴洛克") + "个片段");
                 fw.WriteLine("古典：" + HowManySongs(inputDirectory, "古典") + "首歌曲，" + HowManyMeasures(inputDirectory, "古典") + "个片段");
-                fw.WriteLine("浪漫与印象：" + HowManySongs(inputDirectory, "浪漫与印象") + "首歌曲，" + HowManyMeasures(inputDirectory, "浪漫与印象") + "个片段");
-                fw.WriteLine("现代：" + HowManySongs(inputDirectory, "现代") + "首歌曲，" + HowManyMeasures(inputDirectory, "现代") + "个片段");
+                fw.WriteLine("浪漫：" + HowManySongs(inputDirectory, "浪漫") + "首歌曲，" + HowManyMeasures(inputDirectory, "浪漫") + "个片段");
+                fw.WriteLine("印象与现代：" + HowManySongs(inputDirectory, "印象与现代") + "首歌曲，" + HowManyMeasures(inputDirectory, "印象与现代") + "个片段");
                 fw.WriteLine("输入集总共：" + HowManySongs(inputDirectory, "") + "首歌曲，" + HowManyMeasures(inputDirectory, "") + "个片段");
 
                 fw.WriteLine("测试集总共：" + HowManySongs(testDirectory, "") + "首歌曲，" + HowManyMeasures(testDirectory, "") + "个片段");
-
+                 
                 //使用SVM进行分类
                 SVMHelper.AccordSVM(inputData, testData, fw);
                 SVMHelper.AccordSVMMultiClasses(inputData, testData, fw);
@@ -110,6 +149,7 @@ namespace MusicXMLBasedCalc
                                 ret.Add(song.PrintResultToCsv());
                             }
                         }
+                        i++;
                     }
                 }
             }
@@ -118,7 +158,15 @@ namespace MusicXMLBasedCalc
             using (StreamWriter file = new StreamWriter(fileName, true, Encoding.UTF8))
             {
                 //Caption
-                string caption = ",1&8度,大2&小7,小2&大7&增四,音程方差,调外音,节奏方差,波音个数,回音个数,颤音个数,非简单和弦拍数比例,T比例,D比例,S比例,音高极值距离,音高方差";
+                var type = typeof(Song);
+                var properties = type.GetProperties();
+
+                var caption = "Name,";
+                foreach (PropertyInfo property in properties)
+                {
+                    caption += property.Name + ",";
+                }
+
                 file.WriteLine(caption);
 
                 foreach (var str in ret)

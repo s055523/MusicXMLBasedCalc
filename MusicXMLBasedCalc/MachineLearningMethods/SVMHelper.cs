@@ -61,14 +61,36 @@ namespace MusicXMLBasedCalc
             // Get class scores for each sample
             double[] scores = machine.Score(inputs);
 
+            List<SongResult> songResults = new List<SongResult>();
+
             //测试
             int i = 0;
             double accuracy;
             int correctCount = 0;
             foreach (var testDetail in test)
             {
+                //目前的曲名
+                var songName = testData[i].Split(',')[0];
+
+                //曲名中去掉无关部分之后（.musicxml之前的内容）
+                var name = songName.Split('.')[0];
+
+                //统计一首歌（所有片段）然后取最多者
+                if (!songResults.Select(s => s.name).Contains(name))
+                {
+                    var sr = new SongResult();
+                    sr.name = name;
+                    sr.label = answer[i];
+                    sr.fragmentResults = new List<int>();
+                    songResults.Add(sr);
+                }
+
                 var predict = machine.Decide(testDetail);
-                fw.WriteLine($"歌曲：{testData[i].Split(',')[0]}, 正确答案是{answer[i]}, SVM认为：{predict}");
+                fw.WriteLine($"歌曲：{songName}, 正确答案是{answer[i]}, SVM认为：{predict}");
+
+                var songr = songResults.First(s => s.name == name);
+                songr.fragmentResults.Add(predict);
+
                 if (answer[i] == predict)
                 {
                     correctCount++;
@@ -76,7 +98,27 @@ namespace MusicXMLBasedCalc
                 i++;    
             }
             accuracy = (double)correctCount / (double)test.Count();
-            fw.WriteLine("SVM的正确率:" + accuracy);
+            fw.WriteLine("SVM的正确率（分段）:" + accuracy);
+
+            correctCount = 0;
+            foreach (var sr in songResults)
+            {
+                IEnumerable<int> top4 = sr.fragmentResults
+                                        .GroupBy(a => a)
+                                        .OrderByDescending(g => g.Count())
+                                        .Take(4)
+                                        .Select(g => g.Key);
+
+                fw.WriteLine($"歌曲：{sr.name}, 出现次数最多的是 {top4.First()}，正确答案是{sr.label}");
+                sr.result = top4.First();
+                if(top4.First() == sr.label)
+                {
+                    correctCount++;
+                }
+            }
+            accuracy = (double)correctCount / (double)songResults.Count();
+            fw.WriteLine("SVM的正确率（汇总）:" + accuracy);
+
         }
 
         public static void AccordSVMMultiClasses(List<string> inputData, List<string> testData, StreamWriter fw)
@@ -103,23 +145,63 @@ namespace MusicXMLBasedCalc
             // Get class scores for each sample
             double[] scores = machine.Score(inputs);
 
+            List<SongResult> songResults = new List<SongResult>();
+
             //测试
             int i = 0;
             double accuracy;
             int correctCount = 0;
             foreach (var testDetail in test)
             {
+                //目前的曲名
+                var songName = testData[i].Split(',')[0];
+
+                //曲名中去掉无关部分之后（.musicxml之前的内容）
+                var name = songName.Split('.')[0];
+
+                //统计一首歌（所有片段）然后取最多者
+                if (!songResults.Select(s => s.name).Contains(name))
+                {
+                    var sr = new SongResult();
+                    sr.name = name;
+                    sr.label = answer[i];
+                    sr.fragmentResults = new List<int>();
+                    songResults.Add(sr);
+                }
+
                 var predict = machine.Decide(testDetail);
                 fw.WriteLine($"歌曲：{testData[i].Split(',')[0]}, 正确答案是{answer[i]}, SVM认为：{predict}");
 
-                if(answer[i] == predict)
+                var songr = songResults.First(s => s.name == name);
+                songr.fragmentResults.Add(predict);
+
+                if (answer[i] == predict)
                 {
                     correctCount++;
                 }
                 i++;
             }
             accuracy = (double)correctCount / (double)test.Count();
-            fw.WriteLine("SVM四类的正确率:" + accuracy);
+            fw.WriteLine("SVM四类的正确率（分段）:" + accuracy);
+
+            correctCount = 0;
+            foreach (var sr in songResults)
+            {
+                IEnumerable<int> top4 = sr.fragmentResults
+                                        .GroupBy(a => a)
+                                        .OrderByDescending(g => g.Count())
+                                        .Take(4)
+                                        .Select(g => g.Key);
+
+                fw.WriteLine($"歌曲：{sr.name}, 出现次数最多的是 {top4.First()}，正确答案是{sr.label}");
+                sr.result = top4.First();
+                if (top4.First() == sr.label)
+                {
+                    correctCount++;
+                }
+            }
+            accuracy = (double)correctCount / (double)songResults.Count();
+            fw.WriteLine("SVM的正确率（汇总）:" + accuracy);
         }
 
         public static void PrepareDataLibSvm(List<string> data, string testFilePath)
@@ -213,5 +295,13 @@ namespace MusicXMLBasedCalc
             }
             return (dimensionCount, input, output);
         }
+    }
+
+    public class SongResult
+    {
+        public string name { get; set; }
+        public List<int> fragmentResults { get; set; }
+        public int result { get; set; }
+        public int label { get; set; }
     }
 }

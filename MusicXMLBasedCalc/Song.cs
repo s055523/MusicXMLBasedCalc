@@ -45,12 +45,8 @@ namespace MusicXMLBasedCalc
         public bool skip = false;
 
         //维度
-        public double PercentageIntervals1 { get; set; }
-        //public double PercentageIntervals2 { get; set; }
-        //public double PercentageIntervals3 { get; set; }
-        //public double PercentageIntervals4 { get; set; }
-        public double PercentageIntervals5 { get; set; }
-        public double PercentageIntervals6 { get; set; }
+        public double PercentageIntervalC { get; set; }
+        public double PercentageIntervalNC { get; set; }
 
         //public double ConsonanceMean { get; set; }
 
@@ -62,22 +58,31 @@ namespace MusicXMLBasedCalc
 
         //节奏混乱程度
         public double durationVariance;
-        
+
         public int NumOfMordent { get; set; }
         public int NumOfTurn { get; set; }
         public int NumOfTrill { get; set; }
 
         //无法配上主要和弦的节拍数占整个曲子的比例
-        public double NoneChordPercentage { get; set; }
-        public double TPercentage { get; set; }
-        public double DPercentage { get; set; }
-        public double SPercentage { get; set; }
+        //public double NoneChordPercentage { get; set; }
+        //public double TPercentage { get; set; }
+        //public double DPercentage { get; set; }
+        //public double SPercentage { get; set; }
 
         //最高音和最低音的距离
         public double NoteRange { get; set; }
-
+        //音高的均值
+        public double NotePitchMean { get; set; }
         //音高的方差
         public double NotePitchVariance { get; set; }
+        //不规则经过句音符占比例
+        public double NoteTimeModificationPercentage;
+
+        //7组或以上音的比例
+        public double NoteAboveSeven { get; set; }
+
+        //2组或以下音的比例
+        public double NoteUnderSecond { get; set; }
 
         public Song(string f, string s, int start = -1, int end = -1)
         {
@@ -216,21 +221,6 @@ namespace MusicXMLBasedCalc
 
                 foreach (var measure in measures)
                 {
-                    //每小节有几拍
-                    //double durationInMeasure = Measure.GetDurationInMeasure(measure);
-
-                    ////没有写节拍号，意味着节拍没有变
-                    //if (durationInMeasure == -1)
-                    //{
-                    //    durationInMeasure = currDurationInMeasure;
-                    //}
-
-                    ////更新节拍
-                    //else if (durationInMeasure != currDurationInMeasure)
-                    //{
-                    //    currDurationInMeasure = durationInMeasure;
-                    //}
-
                     Measure m = new Measure();
                     m.Parse(scaleList, measure, division);
 
@@ -276,45 +266,59 @@ namespace MusicXMLBasedCalc
                 skip = true;
             }
 
-            PercentageIntervals1 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.perfectConsonance, start, end) / totalIntervalSum, 3);
-            consonanceArray.Add(PercentageIntervals1);
-            //PercentageIntervals2 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.medianConsonance, start, end) / totalIntervalSum, 3);
-            //consonanceArray.Add(PercentageIntervals2);
-            //PercentageIntervals3 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.imperfectConsonance, start, end) / totalIntervalSum, 3);
-            //consonanceArray.Add(PercentageIntervals3);
-            //PercentageIntervals4 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.imperfectDissonance, start, end) / totalIntervalSum, 3);
-            //consonanceArray.Add(PercentageIntervals4);
-            PercentageIntervals5 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.medianDissonance, start, end) / totalIntervalSum, 3);
+            PercentageIntervalC = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.perfectConsonance, start, end) / totalIntervalSum, 3);
+            consonanceArray.Add(PercentageIntervalC);
+            var PercentageIntervals2 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.medianConsonance, start, end) / totalIntervalSum, 3);
+            consonanceArray.Add(PercentageIntervals2);
+            var PercentageIntervals3 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.imperfectConsonance, start, end) / totalIntervalSum, 3);
+            consonanceArray.Add(PercentageIntervals3);
+            var PercentageIntervals4 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.imperfectDissonance, start, end) / totalIntervalSum, 3);
+            consonanceArray.Add(PercentageIntervals4);
+            var PercentageIntervals5 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.medianDissonance, start, end) / totalIntervalSum, 3);
             consonanceArray.Add(PercentageIntervals5);
-            PercentageIntervals6 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.perfectDisonnace, start, end) / totalIntervalSum, 3);
+            var PercentageIntervals6 = Math.Round(GetNumberOfIntervals(ConsonanceCatagories.perfectDisonnace, start, end) / totalIntervalSum, 3);
             consonanceArray.Add(PercentageIntervals6);
+            PercentageIntervalNC = PercentageIntervals5 + PercentageIntervals6;
 
             //ConsonanceMean = consonanceArray.Average();
             ConsonanceIntervalVariance = consonanceArray.Variance();
 
             DurationAnalysis(start, end);
 
-            var ret = ChordHelper.ChordAnalysis(start, end, songNotes, scaleList, division, numOfMeasures);
-            if (ret.Count != 0)
-            {
-                NoneChordPercentage = (double)ret.Where(r => r.Contains("none")).Count() / (double)ret.Count;
-                TPercentage = (double)ret.Where(r => r.Contains("T")).Count() / (double)ret.Count;
-                SPercentage = (double)ret.Where(r => r.Contains("IV")).Count() / (double)ret.Count;
-                DPercentage = (double)ret.Where(r => r.Contains("V")).Count() / (double)ret.Count;
-            }
+            //var ret = ChordHelper.ChordAnalysis(start, end, songNotes, scaleList, division, numOfMeasures);
+            //if (ret.Count != 0)
+            //{
+            //    NoneChordPercentage = (double)ret.Where(r => r.Contains("none")).Count() / (double)ret.Count;
+            //    TPercentage = (double)ret.Where(r => r.Contains("T")).Count() / (double)ret.Count;
+            //    SPercentage = (double)ret.Where(r => r.Contains("IV")).Count() / (double)ret.Count;
+            //    DPercentage = (double)ret.Where(r => r.Contains("V")).Count() / (double)ret.Count;
+            //}
 
+            #region Note analysis
             var allNotes = songNotes.SelectMany(s => s.notes).ToList();
-            if(start != -1 && end != -1)
+            if (start != -1 && end != -1)
             {
                 allNotes = allNotes.Where(a => a.measureNumber <= end && a.measureNumber >= start).ToList();
             }
 
-            var pitchIds = allNotes.Select(n => (double)n.id).ToList();
+            if (!allNotes.Any())
+            {
+                this.skip = true;
+            }
+            else
+            {
+                var pitchIds = allNotes.Select(n => (double)n.id / 96).ToList();
+                NotePitchMean = pitchIds.Mean();
+                NotePitchVariance = pitchIds.Variance();
 
-            NotePitchVariance = pitchIds.Variance();
+                allNotes.Sort((a, b) => a.id.CompareTo(b.id));
+                NoteRange = (double)Math.Abs(allNotes.First().id - allNotes.Last().id) / 96;
+                NoteAboveSeven = (double)allNotes.Where(a => a.id >= 85).Count() / allNotes.Count();
+                NoteUnderSecond = (double)allNotes.Where(a => a.id < 25).Count() / allNotes.Count();
 
-            allNotes.Sort((a, b) => a.id.CompareTo(b.id));
-            NoteRange = (double) Math.Abs(allNotes.First().id - allNotes.Last().id) / 88;
+                NoteTimeModificationPercentage = (double)allNotes.Where(a => a.timeModification != 0).Count() / allNotes.Count();
+            }
+            #endregion
         }
 
         public void IntervalAnalysis()
@@ -454,15 +458,8 @@ namespace MusicXMLBasedCalc
             {
                 partIntervalList = intervalList;
             }
-
-            foreach (var interval in partIntervalList)
-            {
-                if (interval.consonanceCategory == cc)
-                {
-                    ret += interval.weight;
-                }
-            }
-            return ret;
+            var cclist = partIntervalList.Where(p => p.consonanceCategory == cc);
+            return cclist.Sum(c => c.weight);
         }
 
         public string PrintResultToCsv()

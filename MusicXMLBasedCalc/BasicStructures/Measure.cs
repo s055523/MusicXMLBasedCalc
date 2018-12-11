@@ -76,84 +76,30 @@ namespace MusicXMLBasedCalc.BasicStructures
                         continue;
                     }
 
-                    //获得x轴位置
-                    var defaultx = double.Parse(elements.ElementAt(i).Attribute("default-x").Value);
+                    //x轴位置
+                    var defaultx = parsedNote.position;
 
-                    //调性修正(即没有任何临时记号的音需要按照调性去修正，例如G大调所有的F都是升的)
-                    var currKey = songScaleList.First(k => k.startMeasureNumber <= number && k.endMeasureNumber >= number);
-
-                    //现在所在的调含有的音
-                    //一般来说，没有临时记号的音才有可能考虑调性修正
-                    if (parsedNote.accidental == string.Empty)
+                    //这表示这个音和上一个音音高相同(只要tie就可以了，不用再判断音高)，并且用连线连接了起来
+                    if (parsedNote.tieStatus == tieStatus.stop && notes.Any() && notes.Last().tieStatus == tieStatus.start)
                     {
-                        parsedNote = currKey.KeyFix(parsedNote);
-                    }
+                        Console.WriteLine("侦测到同音高连线。音高：" + notes.Last().pitch + "，小节：" + number);
 
-                    //这个音没有被临时记号修饰，考虑临时记号修正                            
-                    if (parsedNote.accidental == string.Empty)
-                    {
-                        //如果之前有临时记号在同音高，则需要做修正
-                        //一般来说，如果这个音被调性修正了，那么它通常不会再被临时记号修饰
-                        var accidentalWithSamePitch = accidentals.Where(a => a.pitch == parsedNote.pitch);
-                        if (accidentalWithSamePitch.Any())
-                        {
-                            var accs = accidentalWithSamePitch.Select(a => a.acc);
+                        //上一个同音高的音
+                        var lastNote = notes.Last();
+                        if (lastNote == null) continue;
 
-                            //是按顺序加入的，因此如果最后是natural，则抵消前面的效果
-                            //如果最后一个不是，则本音需要继承这个临时记号
-                            if (accs.Last() != "natural")
-                            {
-                                switch (accs.Last())
-                                {
-                                    case "sharp":
-                                        parsedNote.pitch = NoteHelper.GetNote(parsedNote.pitch, 1);
-                                        break;
-                                    case "sharp-sharp":
-                                        parsedNote.pitch = NoteHelper.GetNote(parsedNote.pitch, 2);
-                                        break;
-                                    case "flat":
-                                        parsedNote.pitch = NoteHelper.GetNote(parsedNote.pitch, -1);
-                                        break;
-                                    case "flat-flat":
-                                        parsedNote.pitch = NoteHelper.GetNote(parsedNote.pitch, -2);
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                        }
+                        //更新它的时值
+                        lastNote.duration += parsedNote.duration;
+                        prevNoteDuration += parsedNote.duration;
+
+                        //更新information的值（从上一个音，可能是一个和弦中找出同音高的音，更新它的时值）
+                        noteResults.Last().information = string.Join(",", notes.Select(n => n.ToString()));
                     }
                     else
                     {
-                        //加入到临时记号字典中
-                        var acc = new Accidental()
-                        {
-                            acc = parsedNote.accidental,
-                            pitch = parsedNote.GetOriginalPitchForAccidental()
-                        };
-                        accidentals.Add(acc);
-                    }
-
-                    //不是休止符
-                    if (parsedNote != null && parsedNote.pitch != "rest")
-                    {
-                        //这表示这个音和上一个音音高相同(只要tie就可以了，不用再判断音高)，并且用连线连接了起来
-                        if (parsedNote.slurStatus == SlurStatus.stop && notes.Any() && notes.Last().slurStatus == SlurStatus.start)
-                        {
-                            Console.WriteLine("侦测到同音高连线。音高：" + notes.Last().pitch + "，小节：" + number);
-
-                            //上一个同音高的音
-                            var lastNote = notes.Last();
-                            if (lastNote == null) continue;
-
-                            //更新它的时值
-                            lastNote.duration += parsedNote.duration;
-                            prevNoteDuration += parsedNote.duration;
-
-                            //更新information的值（从上一个音，可能是一个和弦中找出同音高的音，更新它的时值）
-                            noteResults.Last().information = string.Join(",", notes.Select(n => n.ToString()));
-                        }
-                        else
+                        //判別和弦的方法： <chord/>
+                        var containsChordNode = elements.ElementAt(i).Descendants("chord").Any();
+                        if (containsChordNode == false)
                         {
                             //如果是和弦那么currentPos不变，否则就前进
                             if (defaultx > prevDefaultx && prevDefaultx != 0 && prevNoteDuration != 0)
@@ -163,13 +109,13 @@ namespace MusicXMLBasedCalc.BasicStructures
                                 //如果prevDefaultx为0说明为小节内第一个音符，所以就不需要加当前音符的时值
                                 currentPos += prevNoteDuration;
                             }
-
-                            notes.Add(parsedNote);
-                            noteResults.Add(new Result(currentPos, parsedNote.ToString(), new List<Note> { parsedNote }));
-
-                            prevDefaultx = defaultx;
-                            prevNoteDuration = parsedNote.duration;
                         }
+
+                        notes.Add(parsedNote);
+                        noteResults.Add(new Result(currentPos, parsedNote.ToString(), new List<Note> { parsedNote }));
+
+                        prevDefaultx = defaultx;
+                        prevNoteDuration = parsedNote.duration;
                     }
                 }
 
